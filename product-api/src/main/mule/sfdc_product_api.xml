@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+    <http:listener-config name="sfdc_product_api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="sfdc_product_api-config" api="resource::cf06d6a9-ce61-461c-b28d-047fc3ddf45b:sfdc_product_api:1.0.1:raml:zip:sfdc_product_api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <configuration-properties doc:name="Configuration properties" doc:id="06619641-3fd8-424c-b412-2b9a45e833a7" file="config.yaml" />
+    <db:config name="Database_Config" doc:name="Database Config">
+        <db:my-sql-connection host="${sql.Host}" port="${sql.Port}" user="${sql.User}" password="${sql.Password}" database="${sql.Database}" />
+    </db:config>
+    <salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="8f2f907c-e58e-4711-bd98-41580f3e320c">
+        <salesforce:basic-connection username="aaitouaret@semule.demo" password="Lali1999!" securityToken="O7fZBrLtepsr2nQLAOxBwXKL" />
+    </salesforce:sfdc-config>
+    <flow name="sfdc_product_api-main">
+        <http:listener config-ref="sfdc_product_api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="sfdc_product_api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="sfdc_product_api-console">
+        <http:listener config-ref="sfdc_product_api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="sfdc_product_api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    
+    <flow name="post:\addProductToOpportunity\(OpportunityID):application\json:sfdc_product_api-config">
+    
+    	<set-variable variableName="opportunityId" value="#[attributes.uriParams.OpportunityID]" doc:name="Set OpportunityID" />
+    
+	    <!-- Étape 1 : Sélectionner le produit depuis la base de données -->
+	    
+	    <db:select doc:name="Select Product from Database" doc:id="386e3758-1046-4ea6-b300-0502ef8beb9c" config-ref="Database_Config">
+	        <db:sql><![CDATA[SELECT * FROM product ORDER BY RAND() LIMIT 1]]></db:sql>
+	    </db:select>
+	
+	    <!-- Étape 2 : Enregistrement du produit dans un logger pour inspection -->
+	
+	    <!-- Étape 3 : Transformation des données pour Salesforce -->
+	    
+	    <ee:transform doc:name="Transform Product Data for Salesforce" doc:id="c484cd76-ab64-4039-a1eb-5888fc720749">
+	        <ee:message>
+	            <ee:set-payload><![CDATA[%dw 2.0
+	                output application/json
+	                ---
+	                {
+	                    "external_id": payload[0].id,
+	                    "productName": payload[0].product_name,
+	                    "productCode": payload[0].product_code
+	                }]]></ee:set-payload>
+	        </ee:message>
+	    </ee:transform>
+	
+	    <!-- Étape 4 : Upsert du produit dans Salesforce -->
+	    
+	    <salesforce:upsert objectType="Product2" externalIdFieldName="Id" doc:name="Upsert Product in Salesforce" doc:id="a9af7fc2-6f74-480a-85ae-269d8e46b50b" config-ref="Salesforce_Config">
+	        <salesforce:records><![CDATA[#[%dw 2.0
+	            output application/json
+	            ---
+	            [{
+	                "Name": payload.productName,
+	                "ProductCode": payload.productCode as String,
+	                "External_ID__c": payload.external_id as String,
+	                "IsActive": true
+	            }]]]]></salesforce:records>
+	    </salesforce:upsert>
+	
+	    <!-- Étape 5 : Enregistrement du résultat de l'upsert dans un logger -->
+		<logger level="INFO" doc:name="Logger" doc:id="a0fc3fdd-24d7-40f4-9d28-27a043ab5fcb" message="#[payload.items.payload.id]"/>
+		<set-variable value='#[payload.items.payload.id]' doc:name="Set ProductID" doc:id="c25b24af-5a4d-4e4c-ab7e-e171602658e2" variableName="ProductID" />
+	
+	    <!-- Étape 6 : Upsert de l'entrée de catalogue de prix dans Salesforce -->
+	    
+		<salesforce:upsert objectType="PricebookEntry" doc:name="Link Price Book Entry with Product in Salesforce" doc:id="50d0a835-ca65-47cf-8edf-dfd329950f34" config-ref="Salesforce_Config" externalIdFieldName="Id">
+	        <salesforce:records><![CDATA[#[%dw 2.0
+	            output application/json
+	            ---
+	            [{
+	                "CurrencyIsoCode": "USD",
+	                "Product2Id": (payload.items.payload.id default ""),
+	                "Pricebook2Id": "01s07000000IMkaAAG",
+	                "UnitPrice": "100",
+	                "IsActive": true
+	            }]]]]></salesforce:records>
+	    </salesforce:upsert>
+		
+	
+	     <!-- Étape 7 : Transformation du résultat final pour la réponse -->
+		<logger level="INFO" doc:name="Logger1" doc:id="012575d9-0999-41eb-908b-a7f2d32738c7" message="#[payload.items.payload.id]" />
+		<salesforce:upsert doc:name="Link Product to Opportunity Product" doc:id="9b9ba871-7ea0-4ff9-968d-a04b6302a471" config-ref="Salesforce_Config" objectType="OpportunityLineItem" externalIdFieldName="Id">
+			<salesforce:records ><![CDATA[#[%dw 2.0
+	    output application/json
+	    ---
+	    [{
+	        "OpportunityId": vars.opportunityId,
+	        "Product2Id": vars.ProductID,
+	        "PricebookEntryId": (payload.items.payload.id default "01u07000008SkUhAAK"),//"01u07000008SkUhAAK"
+	        "Quantity": "1", // Quantité en tant que nombre
+	        "UnitPrice": "100" // Prix unitaire en tant que nombre
+	    }]]]]></salesforce:records>
+		</salesforce:upsert>
+		
+		
+		<logger level="INFO" doc:name="Logger2" doc:id="44845a93-137d-4771-9dbe-73f8de5ead08" message="#[payload.items.payload.id]" />
+		<ee:transform doc:name="Transform Result Message" doc:id="235eb945-fd4b-4d15-9603-4380045ca268">
+	        <ee:message>
+	            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"success": payload.successful,
+	"message": "Le produit a été ajouté avec succès à l'opportunité.",
+	"productId": (("Opportunity Id :" default "") ++ (payload.items[0].id as String default ""))
+}]]></ee:set-payload>
+	        </ee:message>
+	    </ee:transform>
+	</flow>
+    
+</mule>
